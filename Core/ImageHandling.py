@@ -65,10 +65,11 @@ def NumFrames(image: Image):
 
 def GetFrames(image: Image.Image):
     for i in range(NumFrames(image)):
-        image.seek(i)
-        yield image
-    image.seek(0)
-
+        if hasattr(image, 'seek'):
+            image.seek(i)
+            yield image
+    if hasattr(image, 'seek'):
+        image.seek(0)
 
 def PILImageForFrameInList(i, images: List[Image.Image]):
     for image in images:

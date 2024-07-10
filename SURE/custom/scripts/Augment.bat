@@ -1,0 +1,1 @@
+python OrganoID.py augment SURE\datasets\tests\0\training\pre_augmented SURE\datasets\tests\0\training 10

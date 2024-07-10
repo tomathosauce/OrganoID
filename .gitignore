@@ -6,4 +6,6 @@ build/
 *.tif
 *.gif
 *.png
+SURE/datasets/handpicked/*/models/
 Publication/Dataset
+ModelCheckpoints

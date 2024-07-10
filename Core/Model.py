@@ -10,11 +10,10 @@ from Core.ImageHandling import NumFrames, GetFrames
 from Core.HelperFunctions import printRep
 from pathlib import Path
 
-
 # Builds a U-Net model for a given image size and filter count.
 def BuildModel(imageSize: Tuple[int, int], dropoutRate: float, firstLayerFilterCount: int):
     # First layer in the network is each pixel in the grayscale image
-    inputs = tf.keras.layers.Input((imageSize[0], imageSize[1], 3))
+    inputs = tf.keras.layers.Input((imageSize[0], imageSize[1], 1))
 
     # Contracting path identifies features at increasing levels of detail
     # (i.e. intensity, edges, shapes, texture...)
@@ -77,9 +76,20 @@ def TrainModel(model: tf.keras.Model, learningRate, patience, epochs, batchSize,
     ]
     if saveAll:
         callbacks.append(ModelCheckpoint(savePath.absolute(), model, saveLite))
+        
+    # print(trainingData)
 
-    model.fit(x=ImageGenerator(trainingData, batchSize, model),
-              validation_data=LoadGroundTruths(validationData, model),
+    X = ImageGenerator(trainingData, batchSize, model)
+    V = LoadGroundTruths(validationData, model)
+    
+    # b1 = LoadGroundTruths(trainingData[(4 * 0):(4 * (0 + 1)),
+    #                             model)[0]
+    # b1s = b1.shape
+    # b1r = b1.reshape((b1s[0], b1s[1], b1s[2], 1))
+    
+    # print(b1r)
+    model.fit(x=X,
+              validation_data=V,
               batch_size=batchSize,
               shuffle=True,
               verbose=1,
@@ -107,7 +117,6 @@ class ModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
     def __init__(self, path: Path, model: ModelType, saveLite: bool):
         super().__init__(path, verbose=True)
         self.path = path
-        self.model = model
         self.saveLite = saveLite
 
     def on_epoch_end(self, epoch: int, logs=None):
@@ -139,6 +148,10 @@ class ImageGenerator(tf.keras.utils.Sequence):
     def Shuffle(self):
         self.data = np.random.permutation(self.data)
 
+def reshape_ground_truth(b1):
+    b1s = b1.shape
+    b1r = b1.reshape((b1s[0], b1s[1], b1s[2], 1))
+    return b1r
 
 class GroundTruth:
     def __init__(self, imagePath: pathlib.Path, segmentationPath: pathlib.Path):
@@ -151,10 +164,10 @@ class GroundTruth:
 
 
 def LoadGroundTruths(groundTruths: List[GroundTruth], model: ModelType):
-    images = PrepareImagesForModel([Image.open(x.imagePath) for x in groundTruths], model,
-                                   verbose=False)
-    segmentations = PrepareSegmentationsForModel(
-        [Image.open(x.segmentationPath) for x in groundTruths], model)
+    images = reshape_ground_truth(PrepareImagesForModel([Image.open(x.imagePath) for x in groundTruths], model,
+                                   verbose=False))
+    segmentations = reshape_ground_truth(PrepareSegmentationsForModel(
+        [Image.open(x.segmentationPath) for x in groundTruths], model))
 
     return images, segmentations
 
@@ -199,6 +212,8 @@ def PrepareImagesForModel(images: List[Image.Image], model: ModelType, verbose=T
     if verbose:
         printRep(None)
         print("Done")
+        
+    # print("loadedImages", len(loadedImages))
     return loadedImages
 
 

@@ -9,7 +9,19 @@ import re
 
 
 def AugmentImages(imagesDirectory: Path, segmentationsDirectory: Path, outputDirectory: Path,
-                  count: int):
+                  count: int, distort=True):
+    print("Images directory:", imagesDirectory.absolute())
+    print("Segmentations directory:", segmentationsDirectory.absolute())
+    print("Output directory:", outputDirectory.absolute())
+
+    # Verificar la existencia de los directorios
+    if not imagesDirectory.exists():
+        raise OSError(f"The images directory does not exist: {imagesDirectory.absolute()}")
+    if not segmentationsDirectory.exists():
+        raise OSError(f"The segmentations directory does not exist: {segmentationsDirectory.absolute()}")
+    if not outputDirectory.exists():
+        raise OSError(f"The output directory does not exist: {outputDirectory.absolute()}")
+
     augmentor = Augmentor.Pipeline(source_directory=str(imagesDirectory.absolute()),
                                    output_directory=str(outputDirectory.absolute()))
     augmentor.set_save_format("auto")
@@ -21,9 +33,10 @@ def AugmentImages(imagesDirectory: Path, segmentationsDirectory: Path, outputDir
     augmentor.flip_left_right(probability=0.5)
     augmentor.flip_top_bottom(probability=0.5)
     augmentor.zoom_random(probability=0.5, percentage_area=0.7)
-    augmentor.shear(probability=1, max_shear_left=20, max_shear_right=20)
-    augmentor.random_distortion(probability=0.5, grid_width=5, grid_height=5, magnitude=3)
-    augmentor.skew(probability=0.5, magnitude=0.3)
+    if distort:
+        augmentor.shear(probability=1, max_shear_left=20, max_shear_right=20)
+        augmentor.random_distortion(probability=0.5, grid_width=5, grid_height=5, magnitude=3)
+        augmentor.skew(probability=0.5, magnitude=0.3)
     # Resize images to 512x512 (in case some were cropped)
     augmentor.resize(1, 512, 512)
 
@@ -79,6 +92,26 @@ def SplitData(imagePaths: List[Path], segmentationPaths: List[Path], validationF
 
 
 def _CopyToPath(paths: List[Path], output: Path):
+    output.mkdir(parents=True, exist_ok=True)
     for path in paths:
         newPath = output / path.name
         shutil.copy(path, newPath)
+        
+if __name__ == '__main__':
+    images_dir = Path('Resources/Images')
+    segmentations_dir = Path('Resources/Segmentation')
+    output_dir = Path('Oversampling')
+
+
+    count = 100
+
+    AugmentImages(imagesDirectory=images_dir, segmentationsDirectory=segmentations_dir, outputDirectory=output_dir, count=count)
+
+    image_paths = list(images_dir.glob('*.png'))  
+    segmentation_paths = list(segmentations_dir.glob('*.png')) 
+
+
+    validation_fraction = 0.15
+    testing_fraction = 0.05
+
+    SplitData(imagePaths=image_paths, segmentationPaths=segmentation_paths, validationFraction=validation_fraction, testingFraction=testing_fraction, outputDirectory=output_dir)

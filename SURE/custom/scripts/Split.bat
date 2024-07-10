@@ -1,0 +1,1 @@
+python OrganoID.py split C:\Users\chisa\Documents\GitHub\OrganoID_IIT\SURE\datasets\tests\0 C:\Users\chisa\Documents\GitHub\OrganoID_IIT\SURE\datasets\tests\0
