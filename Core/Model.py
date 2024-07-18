@@ -62,12 +62,13 @@ def BuildModel(imageSize: Tuple[int, int], dropoutRate: float, firstLayerFilterC
 
 def TrainModel(model: tf.keras.Model, learningRate, patience, epochs, batchSize,
                trainingData: List['GroundTruth'], validationData: List['GroundTruth'],
-               saveDirectory: Path, saveNamePrefix: str, saveLite, saveAll: bool):
+               saveDirectory: Path, saveNamePrefix: str, saveLite, saveAll: bool, loss_function = None):
     savePath = saveDirectory / (saveNamePrefix + "_E{epoch:03d}")
 
     # Adam optimizer is used for SGD. Binary cross-entropy for loss.
+    LF = tf.keras.losses.binary_crossentropy if not loss_function else loss_function
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learningRate),
-                  loss=tf.keras.losses.binary_crossentropy)
+                  loss=LF)
 
     # Stop training once performance on validation dataset has reached a local minimum
     # (window size is "patience"). We also will save a copy of the model after every epoch.
@@ -88,7 +89,7 @@ def TrainModel(model: tf.keras.Model, learningRate, patience, epochs, batchSize,
     # b1r = b1.reshape((b1s[0], b1s[1], b1s[2], 1))
     
     # print(b1r)
-    model.fit(x=X,
+    history = model.fit(x=X,
               validation_data=V,
               batch_size=batchSize,
               shuffle=True,
@@ -100,6 +101,8 @@ def TrainModel(model: tf.keras.Model, learningRate, patience, epochs, batchSize,
         SaveLiteModel(saveDirectory / "model.tflite", model)
     else:
         model.save(saveDirectory / (saveNamePrefix + "_BEST"))
+
+    return history
 
 
 def SaveLiteModel(path: Path, model: tf.keras.Model):
