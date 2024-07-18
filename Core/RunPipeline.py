@@ -1,10 +1,11 @@
 from typing import List, Optional
 from pathlib import Path
-from Core.Model import LoadFullModel, Detect, LoadLiteModel, PrepareImagesForModel
+from Core.Model import LoadFullModelWithCustomObjects, LoadFullModel, Detect, LoadLiteModel, PrepareImagesForModel
 from Core.Identification import Cleanup, SeparateContours, DetectEdges, Label
 from Core.ImageHandling import LoadPILImages, ImagesToHeatmaps, \
     LabeledImagesToColoredImages, DrawRegionsOnImages, ConvertImagesToStacks, SaveAsGIF
 from Core.Tracking import Track, Inverse, Overlap
+from keras.src.utils import custom_object_scope
 
 
 def SaveImages(data, suffix, pilImages, outputPath):
@@ -22,13 +23,16 @@ def MakeDirectory(path: Path):
         raise Exception("Could not find or create directory '" + str(path.absolute()) + "'.")
 
 
-def LoadModel(modelPath: Path):
+def LoadModel(modelPath: Path, custom_objects = None):
     print("Loading model...")
     print("-" * 100)
     if modelPath.is_file():
         model = LoadLiteModel(modelPath)
     else:
-        model = LoadFullModel(modelPath)
+        if custom_objects:
+            model = LoadFullModelWithCustomObjects(modelPath, custom_objects)
+        else:
+            model = LoadFullModel(modelPath)
     print("-" * 100)
     print("Model loaded.")
     return model
@@ -39,8 +43,9 @@ def RunPipeline(modelPath: Path, imagePaths: List[Path], outputPath: Optional[Pa
                 edgeMax: float, minimumArea: int, fillHoles: bool, removeBorder: bool,
                 detectionOutput: bool, binaryOutput: bool, separateContours: bool,
                 edges: bool, colorLabeledOutput: bool, idLabeledOutput: bool,
-                track: bool, overlay: bool, gif: bool, batch: bool, computeProps: bool):
-    model = LoadModel(modelPath)
+                track: bool, overlay: bool, gif: bool, batch: bool, computeProps: bool,
+                custom_objects = None):
+    model = LoadModel(modelPath, custom_objects=custom_objects)
     # Load the images
     pilImages = LoadPILImages(imagePaths)
     preparedImages = PrepareImagesForModel(pilImages, model)

@@ -178,6 +178,9 @@ def LoadGroundTruths(groundTruths: List[GroundTruth], model: ModelType):
 def LoadFullModel(path: pathlib.Path):
     return tf.keras.models.load_model(path)
 
+def LoadFullModelWithCustomObjects(path: pathlib.Path, custom_objects):
+    with tf.keras.saving.custom_object_scope(custom_objects):
+        return tf.keras.models.load_model(path)
 
 def LoadLiteModel(path: pathlib.Path):
     # Load the TFLite model and allocate tensors.
